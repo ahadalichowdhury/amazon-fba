@@ -513,6 +513,9 @@ app.post('/api/optimize-new-product', async (req, res) => {
 
         console.log(`Starting product launch optimization for: ${productInfo.productName}`);
 
+        // Initialize scraper variable
+        let scraper = null;
+
         // For Vercel deployment, skip scraping to avoid timeouts
         // TODO: Implement background job or caching for scraping
         console.log('Step 1: Researching competitors... (using mock data for Vercel compatibility)');
