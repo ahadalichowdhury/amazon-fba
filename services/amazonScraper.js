@@ -12,39 +12,35 @@ export class AmazonScraper {
         // Vercel-compatible Puppeteer configuration
         const isProduction = process.env.NODE_ENV === 'production';
         
-        this.browser = await puppeteer.launch({
+        let launchOptions = {
             headless: this.headless ? 'new' : false,
-            executablePath: isProduction 
-                ? await require('chrome-aws-lambda').executablePath 
-                : puppeteer.executablePath(),
-            args: isProduction 
-                ? require('chrome-aws-lambda').args.concat([
-                    '--no-sandbox',
-                    '--disable-setuid-sandbox',
-                    '--disable-dev-shm-usage',
-                    '--disable-accelerated-2d-canvas',
-                    '--no-first-run',
-                    '--no-zygote',
-                    '--single-process',
-                    '--disable-gpu',
-                    '--disable-web-security',
-                    '--disable-features=VizDisplayCompositor',
-                    '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-                ])
-                : [
-                    '--no-sandbox',
-                    '--disable-setuid-sandbox',
-                    '--disable-dev-shm-usage',
-                    '--disable-accelerated-2d-canvas',
-                    '--no-first-run',
-                    '--no-zygote',
-                    '--single-process',
-                    '--disable-gpu',
-                    '--disable-web-security',
-                    '--disable-features=VizDisplayCompositor',
-                    '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
-                ]
-        });
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-accelerated-2d-canvas',
+                '--no-first-run',
+                '--no-zygote',
+                '--single-process',
+                '--disable-gpu',
+                '--disable-web-security',
+                '--disable-features=VizDisplayCompositor',
+                '--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+            ]
+        };
+
+        // Use chrome-aws-lambda for production (Vercel)
+        if (isProduction) {
+            try {
+                const chromium = await import('chrome-aws-lambda');
+                launchOptions.executablePath = await chromium.default.executablePath;
+                launchOptions.args = chromium.default.args.concat(launchOptions.args);
+            } catch (error) {
+                console.log('chrome-aws-lambda not available, using default puppeteer');
+            }
+        }
+
+        this.browser = await puppeteer.launch(launchOptions);
         this.page = await this.browser.newPage();
         
         // Enhanced anti-detection measures
