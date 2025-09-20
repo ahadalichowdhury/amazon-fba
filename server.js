@@ -513,29 +513,61 @@ app.post('/api/optimize-new-product', async (req, res) => {
 
         console.log(`Starting product launch optimization for: ${productInfo.productName}`);
 
-        // Initialize scraper
-        scraper = new AmazonScraper({ 
-            debug: process.env.NODE_ENV === 'development',
-            headless: process.env.NODE_ENV !== 'development'
-        });
-        await scraper.initialize();
-
-        // Step 1: Research competitors based on product category and keywords
-        console.log('Step 1: Researching competitors...');
-        const searchQueries = [
-            productInfo.productName,
-            productInfo.category,
-            ...(productInfo.keyFeatures || []).slice(0, 2)
-        ];
-
+        // For Vercel deployment, skip scraping to avoid timeouts
+        // TODO: Implement background job or caching for scraping
+        console.log('Step 1: Researching competitors... (using mock data for Vercel compatibility)');
+        
         let allCompetitors = [];
-        for (const query of searchQueries.slice(0, 4)) { // Increased to 4 searches for more comprehensive analysis
+        
+        // Try scraping with timeout protection
+        if (process.env.NODE_ENV !== 'production') {
             try {
-                const competitors = await scraper.searchCompetitors(query, 12); // Increased from 8 to 12 per search
-                allCompetitors = [...allCompetitors, ...competitors];
-            } catch (searchError) {
-                console.warn(`Failed to search for "${query}":`, searchError.message);
+                // Initialize scraper only in development
+                scraper = new AmazonScraper({ 
+                    debug: process.env.NODE_ENV === 'development',
+                    headless: process.env.NODE_ENV !== 'development'
+                });
+                await scraper.initialize();
+
+                const searchQueries = [
+                    productInfo.productName,
+                    productInfo.category,
+                    ...(productInfo.keyFeatures || []).slice(0, 2)
+                ];
+
+                for (const query of searchQueries.slice(0, 2)) { // Reduced searches for faster processing
+                    try {
+                        const competitors = await scraper.searchCompetitors(query, 5); // Reduced from 12 to 5
+                        allCompetitors = [...allCompetitors, ...competitors];
+                    } catch (searchError) {
+                        console.warn(`Failed to search for "${query}":`, searchError.message);
+                    }
+                }
+            } catch (error) {
+                console.warn('Scraping failed, using mock data:', error.message);
             }
+        }
+
+        // Add mock competitors for production (Vercel) environment
+        if (process.env.NODE_ENV === 'production' && allCompetitors.length === 0) {
+            allCompetitors = [
+                {
+                    title: `Similar ${productInfo.productName} - Premium Quality`,
+                    price: '$24.99',
+                    rating: '4.3',
+                    reviewCount: '1,247',
+                    image: 'https://via.placeholder.com/300x300',
+                    asin: 'B0MOCK001'
+                },
+                {
+                    title: `${productInfo.category} Essential Tool`,
+                    price: '$19.99',
+                    rating: '4.1',
+                    reviewCount: '856',
+                    image: 'https://via.placeholder.com/300x300',
+                    asin: 'B0MOCK002'
+                }
+            ];
         }
 
         // Remove duplicates and get top performers
