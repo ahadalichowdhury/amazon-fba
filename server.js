@@ -680,8 +680,10 @@ app.post('/api/optimize-new-product', async (req, res) => {
         };
         const keywordStrategy = await analyzer.analyzeProductForKeywords(mockProductData);
 
-        // Close scraper
-        await scraper.close();
+        // Close scraper (only if initialized)
+        if (scraper && scraper.browser) {
+            await scraper.close();
+        }
 
         // Return comprehensive optimization
         const response = {
@@ -719,7 +721,7 @@ app.post('/api/optimize-new-product', async (req, res) => {
     } catch (error) {
         console.error('Product optimization error:', error);
         
-        if (scraper) {
+        if (scraper && scraper.browser) {
             await scraper.close();
         }
 
