@@ -1,4 +1,5 @@
 import puppeteer from 'puppeteer';
+import puppeteerCore from 'puppeteer-core';
 
 export class AmazonScraper {
     constructor(options = {}) {
@@ -29,18 +30,22 @@ export class AmazonScraper {
             ]
         };
 
-        // Use chrome-aws-lambda for production (Vercel)
+        // Use @sparticuz/chromium for production (Vercel)
         if (isProduction) {
             try {
-                const chromium = await import('chrome-aws-lambda');
-                launchOptions.executablePath = await chromium.default.executablePath;
+                const chromium = await import('@sparticuz/chromium');
+                launchOptions.executablePath = await chromium.default.executablePath();
                 launchOptions.args = chromium.default.args.concat(launchOptions.args);
+                
+                // Use puppeteer-core for production
+                this.browser = await puppeteerCore.launch(launchOptions);
             } catch (error) {
-                console.log('chrome-aws-lambda not available, using default puppeteer');
+                console.log('Chromium not available, using default puppeteer:', error.message);
+                this.browser = await puppeteer.launch(launchOptions);
             }
+        } else {
+            this.browser = await puppeteer.launch(launchOptions);
         }
-
-        this.browser = await puppeteer.launch(launchOptions);
         this.page = await this.browser.newPage();
         
         // Enhanced anti-detection measures
