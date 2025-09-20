@@ -199,7 +199,7 @@ export class AmazonScraper {
             console.log(`Searching Amazon for: "${searchQuery}" at ${searchUrl}`);
             
             // Add random delay to seem more human
-            await this.page.waitForTimeout(Math.random() * 2000 + 1000);
+            await new Promise(resolve => setTimeout(resolve, Math.random() * 2000 + 1000));
             
             await this.page.goto(searchUrl, { 
                 waitUntil: 'networkidle2',
