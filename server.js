@@ -627,16 +627,13 @@ app.post('/api/optimize-new-product', async (req, res) => {
             }
         }
 
-        // Step 2: Generate competitive insights with timeout protection
+        // Step 2: Generate competitive insights (use fallback for production speed)
         console.log('Step 2: Analyzing competitive landscape...');
         let competitorInsights;
-        try {
-            competitorInsights = await Promise.race([
-                productLaunchOptimizer.generateCompetitorInsights(productInfo, topCompetitors),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 8000))
-            ]);
-        } catch (error) {
-            console.warn('Using fallback competitor insights:', error.message);
+        
+        // Skip OpenAI in production for speed, use enhanced fallback
+        if (process.env.NODE_ENV === 'production') {
+            console.log('Using enhanced fallback competitor insights for production speed');
             competitorInsights = {
                 insights: {
                     marketGaps: [{ 
@@ -654,22 +651,48 @@ app.post('/api/optimize-new-product', async (req, res) => {
                         recommendedPrice: productInfo.priceRange || "$20-30",
                         averagePrice: "$25",
                         priceRange: "$15-40",
-                        pricingStrategy: "Competitive premium positioning with value emphasis"
-                    }
+                    pricingStrategy: "Competitive premium positioning with value emphasis"
                 }
-            };
+            }
+        } else {
+            // Use OpenAI in development
+            try {
+                competitorInsights = await Promise.race([
+                    productLaunchOptimizer.generateCompetitorInsights(productInfo, topCompetitors),
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 8000))
+                ]);
+            } catch (error) {
+                console.warn('OpenAI failed, using fallback:', error.message);
+                competitorInsights = {
+                    insights: {
+                        marketGaps: [{ 
+                            gap: `Limited premium ${productInfo.productName} options in ${productInfo.category}`, 
+                            opportunity: "Focus on quality, unique features, and customer service excellence",
+                            difficulty: "medium",
+                            impact: "High potential for market differentiation"
+                        }],
+                        competitorWeaknesses: [{ 
+                            competitor: "Market Leaders", 
+                            weakness: "Generic positioning and limited customization options",
+                            howToExploit: "Emphasize unique features, superior quality, and personalized customer experience"
+                        }],
+                        pricingAnalysis: { 
+                            recommendedPrice: productInfo.priceRange || "$20-30",
+                            averagePrice: "$25",
+                            priceRange: "$15-40",
+                            pricingStrategy: "Competitive premium positioning with value emphasis"
+                        }
+                    }
+                };
+            }
         }
 
-        // Step 3: Create A9-optimized listing with timeout protection
+        // Step 3: Create A9-optimized listing (use fallback for production speed)
         console.log('Step 3: Creating A9-optimized listing...');
         let optimizedListing;
-        try {
-            optimizedListing = await Promise.race([
-                productLaunchOptimizer.optimizeNewProductListing(productInfo, topCompetitors),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 10000))
-            ]);
-        } catch (error) {
-            console.warn('Using enhanced fallback listing optimization:', error.message);
+        
+        if (process.env.NODE_ENV === 'production') {
+            console.log('Using enhanced A9-optimized fallback for production speed');
             
             // Enhanced A9-optimized fallback with proper structure
             const productName = productInfo.productName || 'Product';
