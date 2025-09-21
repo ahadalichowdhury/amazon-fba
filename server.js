@@ -518,41 +518,53 @@ app.post('/api/optimize-new-product', async (req, res) => {
 
         // For Vercel deployment, skip scraping to avoid timeouts
         // TODO: Implement background job or caching for scraping
-        console.log('Step 1: Researching competitors... (using mock data for Vercel compatibility)');
+        console.log('Step 1: Researching competitors with real Amazon scraping...');
         
         let allCompetitors = [];
         
-        // Try scraping with timeout protection
-        if (process.env.NODE_ENV !== 'production') {
-            try {
-                // Initialize scraper only in development
-                scraper = new AmazonScraper({ 
-                    debug: process.env.NODE_ENV === 'development',
-                    headless: process.env.NODE_ENV !== 'development'
-                });
-                await scraper.initialize();
+        // Try real Amazon scraping with timeout protection
+        try {
+            console.log('🔍 Initializing Amazon scraper for real competitor data...');
+            scraper = new AmazonScraper({ 
+                debug: false, // Disable debug in production for speed
+                headless: true // Always headless in production
+            });
+            
+            // Add timeout for scraper initialization
+            await Promise.race([
+                scraper.initialize(),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Scraper init timeout')), 10000))
+            ]);
 
-                const searchQueries = [
-                    productInfo.productName,
-                    productInfo.category,
-                    ...(productInfo.keyFeatures || []).slice(0, 2)
-                ];
+            const searchQueries = [
+                productInfo.productName,
+                productInfo.category,
+                ...(productInfo.features || []).slice(0, 1) // Just 1 feature for speed
+            ].filter(q => q && q.trim()); // Remove empty queries
 
-                for (const query of searchQueries.slice(0, 2)) { // Reduced searches for faster processing
-                    try {
-                        const competitors = await scraper.searchCompetitors(query, 5); // Reduced from 12 to 5
-                        allCompetitors = [...allCompetitors, ...competitors];
-                    } catch (searchError) {
-                        console.warn(`Failed to search for "${query}":`, searchError.message);
-                    }
+            console.log(`🔍 Searching Amazon for: ${searchQueries.join(', ')}`);
+
+            // Reduced to 1 search query for speed, but get more results per query
+            for (const query of searchQueries.slice(0, 1)) {
+                try {
+                    const competitors = await Promise.race([
+                        scraper.searchCompetitors(query, 8), // Get 8 competitors from 1 search
+                        new Promise((_, reject) => setTimeout(() => reject(new Error('Search timeout')), 15000))
+                    ]);
+                    allCompetitors = [...allCompetitors, ...competitors];
+                    console.log(`✅ Found ${competitors.length} competitors for "${query}"`);
+                    break; // Exit after first successful search to save time
+                } catch (searchError) {
+                    console.warn(`⚠️ Search failed for "${query}":`, searchError.message);
                 }
-            } catch (error) {
-                console.warn('Scraping failed, using mock data:', error.message);
             }
+        } catch (error) {
+            console.warn('⚠️ Real scraping failed, using enhanced mock data:', error.message);
         }
 
-        // Add mock competitors for production (Vercel) environment
-        if (process.env.NODE_ENV === 'production' && allCompetitors.length === 0) {
+        // Add mock competitors only if real scraping completely failed
+        if (allCompetitors.length === 0) {
+            console.log('⚠️ No real competitors found, using enhanced mock data as fallback');
             allCompetitors = [
                 {
                     title: `Similar ${productInfo.productName} - Premium Quality`,
