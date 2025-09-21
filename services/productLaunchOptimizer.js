@@ -13,7 +13,7 @@ export class ProductLaunchOptimizer {
             NEW PRODUCT INFORMATION:
             - Product Name: ${productInfo.productName}
             - Category: ${productInfo.category}
-            - Key Features: ${productInfo.keyFeatures?.join(', ')}
+            - Key Features: ${(productInfo.features || productInfo.keyFeatures || []).join(', ')}
             - Target Audience: ${productInfo.targetAudience}
             - Unique Selling Points: ${productInfo.uniqueSellingPoints?.join(', ')}
             - Price Range: ${productInfo.priceRange}
@@ -143,6 +143,12 @@ export class ProductLaunchOptimizer {
 
             CRITICAL REQUIREMENTS FOR CONTENT CREATION:
             
+            ⚠️ MANDATORY: USE ACTUAL PRODUCT FEATURES PROVIDED ABOVE
+            - Do NOT create generic bullet points
+            - Do NOT use irrelevant features like "BPA-free" unless specifically mentioned
+            - MUST incorporate the exact features listed in "Key Features" section
+            - Each bullet point MUST be based on a real feature from the product information
+            
             1. TITLE OPTIMIZATION:
             - Must be under 200 characters
             - Include 3-4 primary keywords naturally
@@ -151,14 +157,19 @@ export class ProductLaunchOptimizer {
             - Mention key benefit or unique feature
             - Be more compelling than competitor titles
             
-            2. BULLET POINTS (Create exactly 5 bullets):
+            2. BULLET POINTS (Create exactly 5 bullets using ACTUAL FEATURES):
+            - Each bullet MUST be based on a specific feature from the "Key Features" list above
+            - Transform each real feature into a benefit-focused bullet point
             - Each bullet should be 150-200 characters
-            - Start with BENEFIT, then explain feature
+            - Start with BENEFIT, then explain the actual feature provided
             - Include emotional triggers and power words
             - Address customer pain points from competitor analysis
             - Include proof elements (certifications, guarantees, etc.)
             - Use action words and sensory language
             - Each bullet should target different customer concerns
+            
+            EXAMPLE: If feature is "Anti-drip tap: with removable drip stop for clean pouring"
+            Bullet: "✓ MESS-FREE POURING: Anti-drip tap with removable drip stop ensures clean, precise pouring every time - no more spills or waste!"
             
             3. PRODUCT DESCRIPTION:
             - Short Description: 2-3 compelling sentences that hook the reader
