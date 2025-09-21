@@ -657,7 +657,8 @@ app.post('/api/optimize-new-product', async (req, res) => {
                         recommendedPrice: productInfo.priceRange || "$20-30",
                         averagePrice: "$25",
                         priceRange: "$15-40",
-                    pricingStrategy: "Competitive premium positioning with value emphasis"
+                        pricingStrategy: "Competitive premium positioning with value emphasis"
+                    }
                 }
             };
         }
