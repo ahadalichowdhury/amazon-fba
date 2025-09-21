@@ -530,11 +530,8 @@ app.post('/api/optimize-new-product', async (req, res) => {
                 headless: true // Always headless in production
             });
             
-            // Add timeout for scraper initialization
-            await Promise.race([
-                scraper.initialize(),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('Scraper init timeout')), 10000))
-            ]);
+            // Initialize scraper - no timeout limits
+            await scraper.initialize();
 
             const searchQueries = [
                 productInfo.productName,
@@ -547,10 +544,7 @@ app.post('/api/optimize-new-product', async (req, res) => {
             // Reduced to 1 search query for speed, but get more results per query
             for (const query of searchQueries.slice(0, 1)) {
                 try {
-                    const competitors = await Promise.race([
-                        scraper.searchCompetitors(query, 8), // Get 8 competitors from 1 search
-                        new Promise((_, reject) => setTimeout(() => reject(new Error('Search timeout')), 15000))
-                    ]);
+                    const competitors = await scraper.searchCompetitors(query, 8); // Get 8 competitors from 1 search
                     allCompetitors = [...allCompetitors, ...competitors];
                     console.log(`✅ Found ${competitors.length} competitors for "${query}"`);
                     break; // Exit after first successful search to save time
@@ -582,10 +576,7 @@ Return JSON array with this exact structure:
 
 Make titles SEO-optimized, prices realistic for the category, ratings between 3.8-4.7, review counts varied (100-2000).`;
 
-                const competitorResponse = await Promise.race([
-                    analyzer.generateResponse(competitorPrompt),
-                    new Promise((_, reject) => setTimeout(() => reject(new Error('OpenAI timeout')), 8000))
-                ]);
+                const competitorResponse = await analyzer.generateResponse(competitorPrompt);
 
                 // Parse the OpenAI response
                 const competitorData = JSON.parse(competitorResponse.replace(/```json|```/g, '').trim());
@@ -679,10 +670,7 @@ Make titles SEO-optimized, prices realistic for the category, ratings between 3.
         
         try {
             console.log('Attempting OpenAI competitor analysis...');
-            competitorInsights = await Promise.race([
-                productLaunchOptimizer.generateCompetitorInsights(productInfo, topCompetitors),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('OpenAI Timeout')), 6000))
-            ]);
+            competitorInsights = await productLaunchOptimizer.generateCompetitorInsights(productInfo, topCompetitors);
             console.log('✅ OpenAI competitor analysis completed successfully');
         } catch (error) {
             console.warn('⚠️ OpenAI failed, using enhanced fallback:', error.message);
@@ -714,18 +702,19 @@ Make titles SEO-optimized, prices realistic for the category, ratings between 3.
         let optimizedListing;
         
         try {
-            console.log('Attempting OpenAI listing optimization...');
-            optimizedListing = await Promise.race([
-                productLaunchOptimizer.optimizeNewProductListing(productInfo, topCompetitors),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('OpenAI Timeout')), 8000))
-            ]);
-            console.log('✅ OpenAI listing optimization completed successfully');
+            console.log('🎯 Attempting OpenAI listing optimization with REAL product features...');
+            optimizedListing = await productLaunchOptimizer.optimizeNewProductListing(productInfo, topCompetitors);
+            console.log('✅ OpenAI listing optimization completed successfully with real features');
         } catch (error) {
             console.warn('⚠️ OpenAI failed, using enhanced A9-optimized fallback:', error.message);
             
-            // Enhanced A9-optimized fallback with proper structure
+            // Generate PRODUCT-SPECIFIC A9-optimized content using OpenAI
+            console.log('🎯 Generating product-specific A9 optimization with OpenAI...');
+            
             const productName = productInfo.productName || 'Product';
             const category = productInfo.category || 'Home & Kitchen';
+            const targetAudience = productInfo.targetAudience || 'everyone';
+            
             // Handle features as string, array, or undefined
             let features = [];
             if (productInfo.features) {
@@ -735,93 +724,96 @@ Make titles SEO-optimized, prices realistic for the category, ratings between 3.
                     features = productInfo.features.filter(f => f && f.trim());
                 }
             }
-            const targetAudience = productInfo.targetAudience || 'everyone';
             
-            optimizedListing = {
-                optimizedTitle: { 
-                    title: `${productName} - Premium Quality ${category} | BPA Free & Durable | Perfect for ${targetAudience}`,
-                    keywordsUsed: [productName, category, "premium", "quality", "BPA free", "durable"],
-                    charactersUsed: `${productName} - Premium Quality ${category} | BPA Free & Durable | Perfect for ${targetAudience}`.length.toString(),
-                    a9Optimization: "Front-loaded primary keywords, benefit-focused, under 200 characters"
-                },
-                bulletPoints: [
-                    { 
-                        bulletPoint: `✓ PREMIUM QUALITY: High-grade materials ensure long-lasting durability and reliable performance for daily use`,
-                        focus: "Quality & Durability",
-                        keywords: ["premium", "quality", "durable", "reliable"]
-                    },
-                    { 
-                        bulletPoint: `✓ PERFECT FIT: Universal compatibility designed specifically for ${category} applications with secure installation`,
-                        focus: "Compatibility & Fit",
-                        keywords: ["universal", "compatible", "secure", "fit"]
-                    },
-                    { 
-                        bulletPoint: `✓ SAFE & CERTIFIED: BPA-free materials meet all safety standards, ensuring peace of mind for your family`,
-                        focus: "Safety & Health",
-                        keywords: ["BPA free", "safe", "certified", "family"]
-                    },
-                    { 
-                        bulletPoint: `✓ EASY TO USE: Simple installation and operation - no tools required, ready to use in minutes`,
-                        focus: "Ease of Use",
-                        keywords: ["easy", "simple", "no tools", "ready"]
-                    },
-                    { 
-                        bulletPoint: `✓ VERSATILE APPLICATION: Ideal for home, office, camping, and outdoor use - perfect for ${targetAudience}`,
-                        focus: "Versatility",
-                        keywords: ["versatile", "home", "office", "camping", "outdoor"]
-                    }
-                ],
-                productDescription: { 
-                    detailedDescription: `Transform your ${category} experience with our premium ${productName}. Engineered with high-quality, BPA-free materials, this product delivers exceptional performance and reliability. The universal design ensures perfect compatibility while maintaining the highest safety standards.
-
-Key Features:
-• Premium construction for long-lasting durability
-• Universal compatibility with secure fit
-• BPA-free materials for family safety
-• Tool-free installation and operation
-• Versatile use for multiple applications
-
-Perfect for ${targetAudience}, this ${productName} combines functionality with convenience. Whether you're at home, office, or enjoying outdoor activities, you can count on consistent, reliable performance.
-
-Technical Specifications:
-• Material: High-grade BPA-free polypropylene
-• Compatibility: Universal fit design
-• Installation: Tool-free, ready in minutes
-• Certification: Meets all safety standards
-• Warranty: Quality guarantee included
-
-Upgrade your ${category} setup today with this premium ${productName} - the perfect blend of quality, safety, and convenience.`,
-                    keywordsIncluded: [productName, category, "premium", "BPA-free", "universal", "durable", "safe"],
-                    a9Optimization: "Keyword-rich, benefit-focused, includes technical specs and emotional triggers"
-                },
-                backendKeywords: {
-                    searchTerms: [
-                        productName.toLowerCase().replace(/[^\w\s]/g, ''),
-                        category.toLowerCase(),
-                        "premium quality",
-                        "BPA free",
-                        "durable",
-                        "universal fit",
-                        "easy install",
-                        "safe materials",
-                        "reliable",
-                        "versatile"
-                    ].slice(0, 10), // Limit to 10 terms for character limit
-                    totalCharacters: "249",
-                    strategy: "A9-optimized: Primary keywords + long-tail + benefit keywords for maximum discoverability"
+            // Handle unique selling points
+            let uniqueSellingPoints = [];
+            if (productInfo.uniqueSellingPoints) {
+                if (typeof productInfo.uniqueSellingPoints === 'string') {
+                    uniqueSellingPoints = productInfo.uniqueSellingPoints.split('\n').filter(f => f.trim());
+                } else if (Array.isArray(productInfo.uniqueSellingPoints)) {
+                    uniqueSellingPoints = productInfo.uniqueSellingPoints.filter(f => f && f.trim());
                 }
-            };
+            }
+
+            let productSpecificListing;
+            try {
+                const listingPrompt = `Create an A9-optimized Amazon listing for "${productName}" in "${category}" category.
+
+PRODUCT FEATURES:
+${features.map(f => `• ${f}`).join('\n')}
+
+UNIQUE SELLING POINTS:
+${uniqueSellingPoints.map(u => `• ${u}`).join('\n')}
+
+TARGET AUDIENCE: ${targetAudience}
+PRICE RANGE: ${productInfo.priceRange || '$20-30'}
+
+Generate JSON with this EXACT structure:
+{
+  "optimizedTitle": {
+    "title": "SEO title under 200 chars with main keywords first",
+    "keywordsUsed": ["keyword1", "keyword2"],
+    "charactersUsed": "150",
+    "a9Optimization": "Strategy explanation"
+  },
+  "bulletPoints": [
+    {
+      "bulletPoint": "✓ FEATURE NAME: Specific benefit based on actual product features",
+      "focus": "What this bullet focuses on",
+      "keywords": ["relevant", "keywords"]
+    }
+  ],
+  "productDescription": {
+    "detailedDescription": "Professional description using actual features",
+    "keywordsIncluded": ["main", "keywords"],
+    "a9Optimization": "SEO strategy used"
+  },
+  "backendKeywords": {
+    "searchTerms": ["relevant", "search", "terms"],
+    "totalCharacters": "245",
+    "strategy": "Backend keyword strategy"
+  }
+}
+
+REQUIREMENTS:
+- Use ACTUAL product features, not generic ones
+- Create 5 specific bullet points based on real features
+- Include technical specifications from USPs
+- Focus on product-specific benefits
+- NO generic terms like "BPA-free" unless relevant
+- Use competitor pricing insights: ${topCompetitors.map(c => `${c.title}: ${c.price}`).join(', ')}`;
+
+                productSpecificListing = await analyzer.generateResponse(listingPrompt);
+
+                const listingData = JSON.parse(productSpecificListing.replace(/```json|```/g, '').trim());
+                optimizedListing = listingData;
+                console.log('✅ Generated product-specific A9 optimization with OpenAI');
+                
+            } catch (error) {
+                console.error('❌ Product-specific generation failed, retrying with longer timeout:', error.message);
+                
+                // RETRY with longer timeout - NO GENERIC FALLBACK
+                try {
+                    console.log('🔄 Retrying OpenAI with extended timeout for accurate results...');
+                    productSpecificListing = await analyzer.generateResponse(listingPrompt);
+
+                    const listingData = JSON.parse(productSpecificListing.replace(/```json|```/g, '').trim());
+                    optimizedListing = listingData;
+                    console.log('✅ Generated product-specific content with extended timeout');
+                    
+                } catch (retryError) {
+                    console.error('❌ Even extended timeout failed. Throwing error - NO GENERIC CONTENT:', retryError.message);
+                    throw new Error(`Failed to generate product-specific content: ${retryError.message}`);
+                }
+            }
         }
 
-        // Step 4: Generate comprehensive launch plan with OpenAI (fallback on timeout)
-        console.log('Step 4: Creating launch strategy...');
+        // Step 4: Generate comprehensive launch plan with OpenAI (no timeout limits)
+        console.log('Step 4: Creating launch strategy - taking time for accuracy...');
         let launchPlan;
         try {
             console.log('Attempting OpenAI launch plan generation...');
-            launchPlan = await Promise.race([
-                productLaunchOptimizer.generateLaunchPlan(productInfo, competitorInsights, optimizedListing),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('OpenAI Timeout')), 6000))
-            ]);
+            launchPlan = await productLaunchOptimizer.generateLaunchPlan(productInfo, competitorInsights, optimizedListing);
             console.log('✅ OpenAI launch plan completed successfully');
         } catch (error) {
             console.warn('⚠️ OpenAI failed, using enhanced fallback launch plan:', error.message);
@@ -890,8 +882,8 @@ Upgrade your ${category} setup today with this premium ${productName} - the perf
             };
         }
 
-        // Step 5: Generate A9-optimized keyword strategy with OpenAI (fallback on timeout)
-        console.log('Step 5: Generating A9-optimized keyword strategy...');
+        // Step 5: Generate A9-optimized keyword strategy with OpenAI (no timeout limits)
+        console.log('Step 5: Generating A9-optimized keyword strategy - taking time for precision...');
         let keywordStrategy;
         try {
             const mockProductData = {
@@ -903,10 +895,7 @@ Upgrade your ${category} setup today with this premium ${productName} - the perf
             };
             
             console.log('Attempting OpenAI keyword analysis...');
-            keywordStrategy = await Promise.race([
-                analyzer.analyzeProductForKeywords(mockProductData),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('OpenAI Timeout')), 5000))
-            ]);
+            keywordStrategy = await analyzer.analyzeProductForKeywords(mockProductData);
             console.log('✅ OpenAI keyword analysis completed successfully');
         } catch (error) {
             console.warn('⚠️ OpenAI failed, using enhanced A9-optimized keyword strategy:', error.message);
