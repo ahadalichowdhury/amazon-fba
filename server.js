@@ -627,13 +627,19 @@ app.post('/api/optimize-new-product', async (req, res) => {
             }
         }
 
-        // Step 2: Generate competitive insights (use fallback for production speed)
+        // Step 2: Generate competitive insights with OpenAI (fallback on timeout)
         console.log('Step 2: Analyzing competitive landscape...');
         let competitorInsights;
         
-        // Skip OpenAI in production for speed, use enhanced fallback
-        if (process.env.NODE_ENV === 'production') {
-            console.log('Using enhanced fallback competitor insights for production speed');
+        try {
+            console.log('Attempting OpenAI competitor analysis...');
+            competitorInsights = await Promise.race([
+                productLaunchOptimizer.generateCompetitorInsights(productInfo, topCompetitors),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('OpenAI Timeout')), 12000))
+            ]);
+            console.log('✅ OpenAI competitor analysis completed successfully');
+        } catch (error) {
+            console.warn('⚠️ OpenAI failed, using enhanced fallback:', error.message);
             competitorInsights = {
                 insights: {
                     marketGaps: [{ 
@@ -653,46 +659,22 @@ app.post('/api/optimize-new-product', async (req, res) => {
                         priceRange: "$15-40",
                     pricingStrategy: "Competitive premium positioning with value emphasis"
                 }
-            }
-        } else {
-            // Use OpenAI in development
-            try {
-                competitorInsights = await Promise.race([
-                    productLaunchOptimizer.generateCompetitorInsights(productInfo, topCompetitors),
-                    new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 8000))
-                ]);
-            } catch (error) {
-                console.warn('OpenAI failed, using fallback:', error.message);
-                competitorInsights = {
-                    insights: {
-                        marketGaps: [{ 
-                            gap: `Limited premium ${productInfo.productName} options in ${productInfo.category}`, 
-                            opportunity: "Focus on quality, unique features, and customer service excellence",
-                            difficulty: "medium",
-                            impact: "High potential for market differentiation"
-                        }],
-                        competitorWeaknesses: [{ 
-                            competitor: "Market Leaders", 
-                            weakness: "Generic positioning and limited customization options",
-                            howToExploit: "Emphasize unique features, superior quality, and personalized customer experience"
-                        }],
-                        pricingAnalysis: { 
-                            recommendedPrice: productInfo.priceRange || "$20-30",
-                            averagePrice: "$25",
-                            priceRange: "$15-40",
-                            pricingStrategy: "Competitive premium positioning with value emphasis"
-                        }
-                    }
-                };
-            }
+            };
         }
 
-        // Step 3: Create A9-optimized listing (use fallback for production speed)
+        // Step 3: Create A9-optimized listing with OpenAI (fallback on timeout)
         console.log('Step 3: Creating A9-optimized listing...');
         let optimizedListing;
         
-        if (process.env.NODE_ENV === 'production') {
-            console.log('Using enhanced A9-optimized fallback for production speed');
+        try {
+            console.log('Attempting OpenAI listing optimization...');
+            optimizedListing = await Promise.race([
+                productLaunchOptimizer.optimizeNewProductListing(productInfo, topCompetitors),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('OpenAI Timeout')), 15000))
+            ]);
+            console.log('✅ OpenAI listing optimization completed successfully');
+        } catch (error) {
+            console.warn('⚠️ OpenAI failed, using enhanced A9-optimized fallback:', error.message);
             
             // Enhanced A9-optimized fallback with proper structure
             const productName = productInfo.productName || 'Product';
@@ -776,16 +758,18 @@ Upgrade your ${category} setup today with this premium ${productName} - the perf
             };
         }
 
-        // Step 4: Generate comprehensive launch plan with timeout protection
+        // Step 4: Generate comprehensive launch plan with OpenAI (fallback on timeout)
         console.log('Step 4: Creating launch strategy...');
         let launchPlan;
         try {
+            console.log('Attempting OpenAI launch plan generation...');
             launchPlan = await Promise.race([
                 productLaunchOptimizer.generateLaunchPlan(productInfo, competitorInsights, optimizedListing),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 8000))
+                new Promise((_, reject) => setTimeout(() => reject(new Error('OpenAI Timeout')), 12000))
             ]);
+            console.log('✅ OpenAI launch plan completed successfully');
         } catch (error) {
-            console.warn('Using enhanced fallback launch plan:', error.message);
+            console.warn('⚠️ OpenAI failed, using enhanced fallback launch plan:', error.message);
             
             launchPlan = {
                 prelaunchPhase: [
@@ -851,7 +835,7 @@ Upgrade your ${category} setup today with this premium ${productName} - the perf
             };
         }
 
-        // Step 5: Generate A9-optimized keyword strategy with timeout protection
+        // Step 5: Generate A9-optimized keyword strategy with OpenAI (fallback on timeout)
         console.log('Step 5: Generating A9-optimized keyword strategy...');
         let keywordStrategy;
         try {
@@ -863,12 +847,14 @@ Upgrade your ${category} setup today with this premium ${productName} - the perf
                 brand: productInfo.brand || 'Generic'
             };
             
+            console.log('Attempting OpenAI keyword analysis...');
             keywordStrategy = await Promise.race([
                 analyzer.analyzeProductForKeywords(mockProductData),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000))
+                new Promise((_, reject) => setTimeout(() => reject(new Error('OpenAI Timeout')), 8000))
             ]);
+            console.log('✅ OpenAI keyword analysis completed successfully');
         } catch (error) {
-            console.warn('Using enhanced A9-optimized keyword strategy:', error.message);
+            console.warn('⚠️ OpenAI failed, using enhanced A9-optimized keyword strategy:', error.message);
             
             const productName = productInfo.productName || 'Product';
             const category = productInfo.category || 'Home & Kitchen';
