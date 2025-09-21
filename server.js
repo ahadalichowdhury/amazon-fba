@@ -635,7 +635,7 @@ app.post('/api/optimize-new-product', async (req, res) => {
             console.log('Attempting OpenAI competitor analysis...');
             competitorInsights = await Promise.race([
                 productLaunchOptimizer.generateCompetitorInsights(productInfo, topCompetitors),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('OpenAI Timeout')), 12000))
+                new Promise((_, reject) => setTimeout(() => reject(new Error('OpenAI Timeout')), 6000))
             ]);
             console.log('✅ OpenAI competitor analysis completed successfully');
         } catch (error) {
@@ -671,7 +671,7 @@ app.post('/api/optimize-new-product', async (req, res) => {
             console.log('Attempting OpenAI listing optimization...');
             optimizedListing = await Promise.race([
                 productLaunchOptimizer.optimizeNewProductListing(productInfo, topCompetitors),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('OpenAI Timeout')), 15000))
+                new Promise((_, reject) => setTimeout(() => reject(new Error('OpenAI Timeout')), 8000))
             ]);
             console.log('✅ OpenAI listing optimization completed successfully');
         } catch (error) {
@@ -766,7 +766,7 @@ Upgrade your ${category} setup today with this premium ${productName} - the perf
             console.log('Attempting OpenAI launch plan generation...');
             launchPlan = await Promise.race([
                 productLaunchOptimizer.generateLaunchPlan(productInfo, competitorInsights, optimizedListing),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('OpenAI Timeout')), 12000))
+                new Promise((_, reject) => setTimeout(() => reject(new Error('OpenAI Timeout')), 6000))
             ]);
             console.log('✅ OpenAI launch plan completed successfully');
         } catch (error) {
@@ -851,7 +851,7 @@ Upgrade your ${category} setup today with this premium ${productName} - the perf
             console.log('Attempting OpenAI keyword analysis...');
             keywordStrategy = await Promise.race([
                 analyzer.analyzeProductForKeywords(mockProductData),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('OpenAI Timeout')), 8000))
+                new Promise((_, reject) => setTimeout(() => reject(new Error('OpenAI Timeout')), 5000))
             ]);
             console.log('✅ OpenAI keyword analysis completed successfully');
         } catch (error) {
