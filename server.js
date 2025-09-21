@@ -680,7 +680,15 @@ app.post('/api/optimize-new-product', async (req, res) => {
             // Enhanced A9-optimized fallback with proper structure
             const productName = productInfo.productName || 'Product';
             const category = productInfo.category || 'Home & Kitchen';
-            const features = productInfo.features ? productInfo.features.split('\n').filter(f => f.trim()) : [];
+            // Handle features as string, array, or undefined
+            let features = [];
+            if (productInfo.features) {
+                if (typeof productInfo.features === 'string') {
+                    features = productInfo.features.split('\n').filter(f => f.trim());
+                } else if (Array.isArray(productInfo.features)) {
+                    features = productInfo.features.filter(f => f && f.trim());
+                }
+            }
             const targetAudience = productInfo.targetAudience || 'everyone';
             
             optimizedListing = {
