@@ -633,7 +633,7 @@ app.post('/api/optimize-new-product', async (req, res) => {
         try {
             competitorInsights = await Promise.race([
                 productLaunchOptimizer.generateCompetitorInsights(productInfo, topCompetitors),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 15000))
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 8000))
             ]);
         } catch (error) {
             console.warn('Using fallback competitor insights:', error.message);
@@ -666,7 +666,7 @@ app.post('/api/optimize-new-product', async (req, res) => {
         try {
             optimizedListing = await Promise.race([
                 productLaunchOptimizer.optimizeNewProductListing(productInfo, topCompetitors),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 20000))
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 10000))
             ]);
         } catch (error) {
             console.warn('Using enhanced fallback listing optimization:', error.message);
@@ -759,7 +759,7 @@ Upgrade your ${category} setup today with this premium ${productName} - the perf
         try {
             launchPlan = await Promise.race([
                 productLaunchOptimizer.generateLaunchPlan(productInfo, competitorInsights, optimizedListing),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 15000))
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 8000))
             ]);
         } catch (error) {
             console.warn('Using enhanced fallback launch plan:', error.message);
@@ -842,7 +842,7 @@ Upgrade your ${category} setup today with this premium ${productName} - the perf
             
             keywordStrategy = await Promise.race([
                 analyzer.analyzeProductForKeywords(mockProductData),
-                new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 10000))
+                new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), 5000))
             ]);
         } catch (error) {
             console.warn('Using enhanced A9-optimized keyword strategy:', error.message);
